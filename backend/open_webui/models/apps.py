@@ -166,7 +166,12 @@ class AppsTable:
                 db.refresh(result)
 
                 if result:
-                    return AppModel.model_validate(result)
+                    log.debug(f"Inserted app: {result.__dict__}")
+                    try:
+                        return AppModel.model_validate(result.__dict__)
+                    except Exception as validation_error:
+                        log.exception(f"Failed to validate app model for result {result.__dict__}: {validation_error}")
+                        return None
                 else:
                     return None
         except Exception as e:
@@ -175,7 +180,7 @@ class AppsTable:
 
     def get_apps(self) -> list[AppModel]:
         with get_db() as db:
-            return [AppModel.model_validate(app) for app in db.query(App).all()]
+            return [AppModel.model_validate(app.__dict__) for app in db.query(App).all()]
 
     def get_apps_by_user_id(
         self, user_id: str, permission: str = "write"
@@ -256,9 +261,9 @@ class AppsTable:
             for app, user in items:
                 apps.append(
                     AppUserResponse(
-                        **AppModel.model_validate(app).model_dump(),
+                        **AppModel.model_validate(app.__dict__).model_dump(),
                         user=(
-                            UserResponse(**UserModel.model_validate(user).model_dump())
+                            UserResponse(**UserModel.model_validate(user.__dict__).model_dump())
                             if user
                             else None
                         ),
@@ -271,7 +276,7 @@ class AppsTable:
         try:
             with get_db() as db:
                 app = db.get(App, id)
-                return AppModel.model_validate(app)
+                return AppModel.model_validate(app.__dict__) if app else None
         except Exception:
             return None
 
@@ -303,7 +308,7 @@ class AppsTable:
 
                 app = db.get(App, id)
                 db.refresh(app)
-                return AppModel.model_validate(app)
+                return AppModel.model_validate(app.__dict__)
         except Exception as e:
             log.exception(f"Failed to update the app by id {id}: {e}")
             return None
