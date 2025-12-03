@@ -8,7 +8,7 @@ from open_webui.env import SRC_LOG_LEVELS
 from open_webui.models.groups import Groups
 from open_webui.models.users import User, UserModel, Users, UserResponse
 
-
+import uuid
 from pydantic import BaseModel, ConfigDict
 
 from sqlalchemy import String, cast, or_, and_, func
@@ -136,7 +136,7 @@ class AppListResponse(BaseModel):
 
 
 class AppForm(BaseModel):
-    id: str
+    id: Optional[str] = None
     source_chat_id: Optional[str] = None
     title: str
     source_code: str
@@ -153,6 +153,7 @@ class AppsTable:
         app = AppModel(
             **{
                 **form_data.model_dump(),
+                "id": str(uuid.uuid4()),
                 "user_id": user_id,
                 "created_at": int(time.time()),
                 "updated_at": int(time.time()),

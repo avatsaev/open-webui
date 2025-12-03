@@ -35,9 +35,6 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def is_valid_app_id(app_id: str) -> bool:
-    return app_id and len(app_id) <= 256
-
 
 ###########################
 # GetApps
@@ -133,11 +130,6 @@ async def create_new_app(
             detail=ERROR_MESSAGES.MODEL_ID_TAKEN,
         )
 
-    if not is_valid_app_id(form_data.id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ERROR_MESSAGES.MODEL_ID_TOO_LONG,
-        )
 
     else:
         app = Apps.insert_new_app(form_data, user.id)
@@ -200,23 +192,23 @@ async def import_apps(
                 # Here, you can add logic to validate app_data if needed
                 app_id = app_data.get("id")
 
-                if app_id and is_valid_app_id(app_id):
-                    existing_app = Apps.get_app_by_id(app_id)
-                    if existing_app:
-                        # Update existing app
-                        app_data["meta"] = app_data.get("meta", {})
-                        app_data["params"] = app_data.get("params", {})
 
-                        updated_app = AppForm(
-                            **{**existing_app.model_dump(), **app_data}
-                        )
-                        Apps.update_app_by_id(app_id, updated_app)
-                    else:
-                        # Insert new app
-                        app_data["meta"] = app_data.get("meta", {})
-                        app_data["params"] = app_data.get("params", {})
-                        new_app = AppForm(**app_data)
-                        Apps.insert_new_app(new_app, user.id)
+                existing_app = Apps.get_app_by_id(app_id)
+                if existing_app:
+                    # Update existing app
+                    app_data["meta"] = app_data.get("meta", {})
+                    app_data["params"] = app_data.get("params", {})
+
+                    updated_app = AppForm(
+                        **{**existing_app.model_dump(), **app_data}
+                    )
+                    Apps.update_app_by_id(app_id, updated_app)
+                else:
+                    # Insert new app
+                    app_data["meta"] = app_data.get("meta", {})
+                    app_data["params"] = app_data.get("params", {})
+                    new_app = AppForm(**app_data)
+                    Apps.insert_new_app(new_app, user.id)
             return True
         else:
             raise HTTPException(status_code=400, detail="Invalid JSON format")
