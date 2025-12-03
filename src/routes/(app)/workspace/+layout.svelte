@@ -111,6 +111,17 @@
 							>
 						{/if}
 
+						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.apps}
+							<a
+								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/apps')
+									? ''
+									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
+								href="/workspace/apps"
+							>
+								{$i18n.t('Apps')}
+							</a>
+						{/if}
+
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools}
 							<a
 								class="min-w-fit p-1.5 {$page.url.pathname.includes('/workspace/tools')
