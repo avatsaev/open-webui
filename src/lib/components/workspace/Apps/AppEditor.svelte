@@ -29,9 +29,9 @@
 	// ///////////
 
 	let title = '';
-	let source_code = '';
+	export let source_code = '';
 	let _source_code = ''; // Temporary variable for CodeEditor onChange
-	let source_chat_id = '';
+	export let source_chat_id = '';
 
 	let info = {
 		id: '',

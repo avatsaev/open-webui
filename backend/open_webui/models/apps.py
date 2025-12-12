@@ -63,7 +63,7 @@ class App(Base):
     """
         The human-readable display name of the app.
     """
-    
+
     source_code = Column(Text)
     """
         base64 encoded source code of the app.
@@ -79,7 +79,8 @@ class App(Base):
         Holds a JSON encoded blob of metadata, see `AppMeta`.
     """
 
-    access_control = Column(JSON, nullable=True)  # Controls data access levels.
+    # Controls data access levels.
+    access_control = Column(JSON, nullable=True)
     # Defines access control rules for this entry.
     # - `None`: Public access, available to all users with the "user" role.
     # - `{}`: Private access, restricted exclusively to the owner.
@@ -133,8 +134,6 @@ class AppListResponse(BaseModel):
     total: int
 
 
-
-
 class AppForm(BaseModel):
     id: Optional[str] = None
     source_chat_id: Optional[str] = None
@@ -171,7 +170,8 @@ class AppsTable:
                     try:
                         return AppModel.model_validate(result.__dict__)
                     except Exception as validation_error:
-                        log.exception(f"Failed to validate app model for result {result.__dict__}: {validation_error}")
+                        log.exception(
+                            f"Failed to validate app model for result {result.__dict__}: {validation_error}")
                         return None
                 else:
                     return None
@@ -187,7 +187,8 @@ class AppsTable:
         self, user_id: str, permission: str = "write"
     ) -> list[AppUserResponse]:
         apps = self.get_apps()
-        user_group_ids = {group.id for group in Groups.get_groups_by_member_id(user_id)}
+        user_group_ids = {
+            group.id for group in Groups.get_groups_by_member_id(user_id)}
         return [
             app
             for app in apps
@@ -201,7 +202,6 @@ class AppsTable:
         with get_db() as db:
             # Join GroupMember so we can order by group_id when requested
             query = db.query(App, User).outerjoin(User, User.id == App.user_id)
-
 
             if filter:
                 query_key = filter.get("query")
@@ -221,7 +221,8 @@ class AppsTable:
                 tag = filter.get("tag")
                 if tag:
                     # TODO: This is a simple implementation and should be improved for performance
-                    like_pattern = f'%"{tag.lower()}"%'  # `"tag"` inside JSON array
+                    # `"tag"` inside JSON array
+                    like_pattern = f'%"{tag.lower()}"%'
                     meta_text = func.lower(cast(App.meta, String))
 
                     query = query.filter(meta_text.like(like_pattern))
@@ -264,7 +265,8 @@ class AppsTable:
                     AppUserResponse(
                         **AppModel.model_validate(app.__dict__).model_dump(),
                         user=(
-                            UserResponse(**UserModel.model_validate(user.__dict__).model_dump())
+                            UserResponse(
+                                **UserModel.model_validate(user.__dict__).model_dump())
                             if user
                             else None
                         ),
@@ -292,6 +294,7 @@ class AppsTable:
                         "updated_at": int(time.time()),
                     }
                 )
+
                 db.commit()
 
                 return self.get_app_by_id(id)
@@ -333,7 +336,6 @@ class AppsTable:
                 return True
         except Exception:
             return False
-
 
 
 Apps = AppsTable()

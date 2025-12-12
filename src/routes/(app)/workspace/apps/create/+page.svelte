@@ -1,6 +1,7 @@
-<script>
+<script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
+	import { createAppFromArtifactCode } from '$lib/stores';
 
 	import { onMount, getContext } from 'svelte';
 	import { createNewApp } from '$lib/apis/apps';
@@ -8,6 +9,8 @@
 	import AppEditor from '$lib/components/workspace/Apps/AppEditor.svelte';
 
 	const i18n = getContext('i18n');
+	let sourceCode = '';
+	let sourceChatId: string | null = null;
 
 	const onSubmit = async (appInfo) => {
 		if (appInfo) {
@@ -34,6 +37,12 @@
 	let app = null;
 
 	onMount(async () => {
+		if ($createAppFromArtifactCode) {
+			sourceCode = $createAppFromArtifactCode.sourceCode;
+			sourceChatId = $createAppFromArtifactCode.sourceChatId;
+		}
+		createAppFromArtifactCode.set(null);
+
 		window.addEventListener('message', async (event) => {
 			if (
 				!['https://openwebui.com', 'https://www.openwebui.com', 'http://localhost:5173'].includes(
@@ -68,5 +77,5 @@
 </script>
 
 {#key app}
-	<AppEditor {app} {onSubmit} />
+	<AppEditor {app} source_code={sourceCode} source_chat_id={sourceChatId} {onSubmit} />
 {/key}
