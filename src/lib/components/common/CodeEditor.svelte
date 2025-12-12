@@ -226,6 +226,7 @@ print("${endTag}")
 		keymap.of([{ key: 'Tab', run: acceptCompletion }, indentWithTab]),
 		indentUnit.of('    '),
 		placeholder($i18n.t('Enter your code here...')),
+		EditorView.lineWrapping,
 		EditorView.updateListener.of((e) => {
 			if (e.docChanged) {
 				_value = e.state.doc.toString();

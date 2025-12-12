@@ -51,6 +51,8 @@ export const chatId = writable('');
 export const chatTitle = writable('');
 
 export const channels = writable([]);
+export const channelId = writable(null);
+
 export const chats = writable(null);
 export const pinnedChats = writable([]);
 export const tags = writable([]);
@@ -88,6 +90,7 @@ export const showCallOverlay = writable(false);
 
 export const artifactCode = writable(null);
 export const artifactContents = writable(null);
+export const createAppFromArtifactCode = writable<{ sourceCode: string; sourceChatId: string } | null>(null);
 
 export const embed = writable(null);
 

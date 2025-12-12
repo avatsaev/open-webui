@@ -215,7 +215,7 @@
 
 	{#if $showControls}
 		<PaneResizer
-			class="relative flex items-center justify-center group border-l border-gray-50 dark:border-gray-850 hover:border-gray-200 dark:hover:border-gray-800  transition z-20"
+			class="relative flex items-center justify-center group border-l border-gray-50 dark:border-gray-850/30 hover:border-gray-200 dark:hover:border-gray-800  transition z-20"
 			id="controls-resizer"
 		>
 			<div
@@ -273,7 +273,7 @@
 					{:else if $showEmbeds}
 						<Embeds overlay={dragged} />
 					{:else if $showArtifacts}
-						<Artifacts {history} overlay={dragged} />
+						<Artifacts enableCreateApp={true} {history} overlay={dragged} />
 					{:else if $showOverview}
 						{#await import('./Overview.svelte') then { default: Overview }}
 							<Overview

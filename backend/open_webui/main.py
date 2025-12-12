@@ -61,11 +61,11 @@ from open_webui.utils import logger
 from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
 from open_webui.utils.logger import start_logger
 from open_webui.socket.main import (
+    MODELS,
     app as socket_app,
     periodic_usage_pool_cleanup,
     get_event_emitter,
     get_models_in_use,
-    get_active_user_ids,
 )
 from open_webui.routers import (
     audio,
@@ -93,6 +93,7 @@ from open_webui.routers import (
     users,
     utils,
     scim,
+    apps
 )
 
 from open_webui.routers.retrieval import (
@@ -273,6 +274,7 @@ from open_webui.config import (
     DOCLING_PARAMS,
     DOCUMENT_INTELLIGENCE_ENDPOINT,
     DOCUMENT_INTELLIGENCE_KEY,
+    DOCUMENT_INTELLIGENCE_MODEL,
     MISTRAL_OCR_API_BASE_URL,
     MISTRAL_OCR_API_KEY,
     RAG_TEXT_SPLITTER,
@@ -352,6 +354,7 @@ from open_webui.config import (
     ENABLE_API_KEYS,
     ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS,
     API_KEYS_ALLOWED_ENDPOINTS,
+    ENABLE_FOLDERS,
     ENABLE_CHANNELS,
     ENABLE_NOTES,
     ENABLE_COMMUNITY_SHARING,
@@ -643,7 +646,8 @@ app.state.oauth_client_manager = oauth_client_manager
 app.state.instance_id = None
 app.state.config = AppConfig(
     redis_url=REDIS_URL,
-    redis_sentinels=get_sentinels_from_env(REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT),
+    redis_sentinels=get_sentinels_from_env(
+        REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT),
     redis_cluster=REDIS_CLUSTER,
     redis_key_prefix=REDIS_KEY_PREFIX,
 )
@@ -767,6 +771,7 @@ app.state.config.WEBHOOK_URL = WEBHOOK_URL
 app.state.config.BANNERS = WEBUI_BANNERS
 
 
+app.state.config.ENABLE_FOLDERS = ENABLE_FOLDERS
 app.state.config.ENABLE_CHANNELS = ENABLE_CHANNELS
 app.state.config.ENABLE_NOTES = ENABLE_NOTES
 app.state.config.ENABLE_COMMUNITY_SHARING = ENABLE_COMMUNITY_SHARING
@@ -869,6 +874,7 @@ app.state.config.DOCLING_API_KEY = DOCLING_API_KEY
 app.state.config.DOCLING_PARAMS = DOCLING_PARAMS
 app.state.config.DOCUMENT_INTELLIGENCE_ENDPOINT = DOCUMENT_INTELLIGENCE_ENDPOINT
 app.state.config.DOCUMENT_INTELLIGENCE_KEY = DOCUMENT_INTELLIGENCE_KEY
+app.state.config.DOCUMENT_INTELLIGENCE_MODEL = DOCUMENT_INTELLIGENCE_MODEL
 app.state.config.MISTRAL_OCR_API_BASE_URL = MISTRAL_OCR_API_BASE_URL
 app.state.config.MISTRAL_OCR_API_KEY = MISTRAL_OCR_API_KEY
 app.state.config.MINERU_API_MODE = MINERU_API_MODE
@@ -980,9 +986,7 @@ app.state.YOUTUBE_LOADER_TRANSLATION = None
 
 try:
     app.state.ef = get_ef(
-        app.state.config.RAG_EMBEDDING_ENGINE,
-        app.state.config.RAG_EMBEDDING_MODEL,
-        RAG_EMBEDDING_MODEL_AUTO_UPDATE,
+        app.state.config.RAG_EMBEDDING_ENGINE, app.state.config.RAG_EMBEDDING_MODEL
     )
     if (
         app.state.config.ENABLE_RAG_HYBRID_SEARCH
@@ -993,7 +997,6 @@ try:
             app.state.config.RAG_RERANKING_MODEL,
             app.state.config.RAG_EXTERNAL_RERANKER_URL,
             app.state.config.RAG_EXTERNAL_RERANKER_API_KEY,
-            RAG_RERANKING_MODEL_AUTO_UPDATE,
         )
     else:
         app.state.rf = None
@@ -1215,7 +1218,7 @@ app.state.config.VOICE_MODE_PROMPT_TEMPLATE = VOICE_MODE_PROMPT_TEMPLATE
 #
 ########################################
 
-app.state.MODELS = {}
+app.state.MODELS = MODELS
 
 # Add the middleware to the app
 if ENABLE_COMPRESSION_MIDDLEWARE:
@@ -1290,7 +1293,8 @@ class APIKeyRestrictionMiddleware(BaseHTTPMiddleware):
 
                 # Match exact path or prefix path
                 is_allowed = any(
-                    request_path == allowed or request_path.startswith(allowed + "/")
+                    request_path == allowed or request_path.startswith(
+                        allowed + "/")
                     for allowed in allowed_paths
                 )
 
@@ -1338,7 +1342,8 @@ async def inspect_websocket(request: Request, call_next):
         and request.query_params.get("transport") == "websocket"
     ):
         upgrade = (request.headers.get("Upgrade") or "").lower()
-        connection = (request.headers.get("Connection") or "").lower().split(",")
+        connection = (request.headers.get("Connection")
+                      or "").lower().split(",")
         # Check that there's the correct headers for an upgrade, else reject the connection
         # This is to work around this upstream issue: https://github.com/miguelgrinberg/python-engineio/issues/367
         if upgrade != "websocket" or "upgrade" not in connection:
@@ -1365,12 +1370,14 @@ app.include_router(ollama.router, prefix="/ollama", tags=["ollama"])
 app.include_router(openai.router, prefix="/openai", tags=["openai"])
 
 
-app.include_router(pipelines.router, prefix="/api/v1/pipelines", tags=["pipelines"])
+app.include_router(
+    pipelines.router, prefix="/api/v1/pipelines", tags=["pipelines"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(images.router, prefix="/api/v1/images", tags=["images"])
 
 app.include_router(audio.router, prefix="/api/v1/audio", tags=["audio"])
-app.include_router(retrieval.router, prefix="/api/v1/retrieval", tags=["retrieval"])
+app.include_router(
+    retrieval.router, prefix="/api/v1/retrieval", tags=["retrieval"])
 
 app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 
@@ -1378,25 +1385,31 @@ app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 
-app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
+app.include_router(
+    channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
 app.include_router(notes.router, prefix="/api/v1/notes", tags=["notes"])
 
 
 app.include_router(models.router, prefix="/api/v1/models", tags=["models"])
-app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
+app.include_router(
+    knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(prompts.router, prefix="/api/v1/prompts", tags=["prompts"])
 app.include_router(tools.router, prefix="/api/v1/tools", tags=["tools"])
+app.include_router(apps.router, prefix="/api/v1/apps", tags=["apps"])
 
-app.include_router(memories.router, prefix="/api/v1/memories", tags=["memories"])
+app.include_router(
+    memories.router, prefix="/api/v1/memories", tags=["memories"])
 app.include_router(folders.router, prefix="/api/v1/folders", tags=["folders"])
 app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
-app.include_router(functions.router, prefix="/api/v1/functions", tags=["functions"])
+app.include_router(
+    functions.router, prefix="/api/v1/functions", tags=["functions"])
 app.include_router(
     evaluations.router, prefix="/api/v1/evaluations", tags=["evaluations"]
 )
 app.include_router(utils.router, prefix="/api/v1/utils", tags=["utils"])
+
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
@@ -1458,7 +1471,8 @@ async def get_models(
 
     model_order_list = request.app.state.config.MODEL_ORDER_LIST
     if model_order_list:
-        model_order_dict = {model_id: i for i, model_id in enumerate(model_order_list)}
+        model_order_dict = {model_id: i for i,
+                            model_id in enumerate(model_order_list)}
         # Sort models by order list priority, with fallback for those not in the list
         models.sort(
             key=lambda model: (
@@ -1514,7 +1528,8 @@ async def embeddings(
 
 
 @app.post("/api/chat/completions")
-@app.post("/api/v1/chat/completions")  # Experimental: Compatibility with OpenAI API
+# Experimental: Compatibility with OpenAI API
+@app.post("/api/v1/chat/completions")
 async def chat_completion(
     request: Request,
     form_data: dict,
@@ -1566,7 +1581,8 @@ async def chat_completion(
             form_data["stream"] = model_info_params.get("stream_response")
 
         if model_info_params.get("stream_delta_chunk_size"):
-            stream_delta_chunk_size = model_info_params.get("stream_delta_chunk_size")
+            stream_delta_chunk_size = model_info_params.get(
+                "stream_delta_chunk_size")
 
         if model_info_params.get("reasoning_tags") is not None:
             reasoning_tags = model_info_params.get("reasoning_tags")
@@ -1575,6 +1591,7 @@ async def chat_completion(
             "user_id": user.id,
             "chat_id": form_data.pop("chat_id", None),
             "message_id": form_data.pop("id", None),
+            "parent_message_id": form_data.pop("parent_id", None),
             "session_id": form_data.pop("session_id", None),
             "filter_ids": form_data.pop("filter_ids", []),
             "tool_ids": form_data.get("tool_ids", None),
@@ -1590,7 +1607,8 @@ async def chat_completion(
                 "function_calling": (
                     "native"
                     if (
-                        form_data.get("params", {}).get("function_calling") == "native"
+                        form_data.get("params", {}).get(
+                            "function_calling") == "native"
                         or model_info_params.get("function_calling") == "native"
                     )
                     else "default"
@@ -1600,7 +1618,8 @@ async def chat_completion(
 
         if metadata.get("chat_id") and (user and user.role != "admin"):
             if not metadata["chat_id"].startswith("local:"):
-                chat = Chats.get_chat_by_id_and_user_id(metadata["chat_id"], user.id)
+                chat = Chats.get_chat_by_id_and_user_id(
+                    metadata["chat_id"], user.id)
                 if chat is None:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
@@ -1631,6 +1650,7 @@ async def chat_completion(
                             metadata["chat_id"],
                             metadata["message_id"],
                             {
+                                "parentId": metadata.get("parent_message_id", None),
                                 "model": model_id,
                             },
                         )
@@ -1663,6 +1683,7 @@ async def chat_completion(
                             metadata["chat_id"],
                             metadata["message_id"],
                             {
+                                "parentId": metadata.get("parent_message_id", None),
                                 "error": {"content": str(e)},
                             },
                         )
@@ -1756,7 +1777,8 @@ async def stop_task_endpoint(
         result = await stop_task(request.app.state.redis, task_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @app.get("/api/tasks")
@@ -1842,6 +1864,7 @@ async def get_app_config(request: Request):
             **(
                 {
                     "enable_direct_connections": app.state.config.ENABLE_DIRECT_CONNECTIONS,
+                    "enable_folders": app.state.config.ENABLE_FOLDERS,
                     "enable_channels": app.state.config.ENABLE_CHANNELS,
                     "enable_notes": app.state.config.ENABLE_NOTES,
                     "enable_web_search": app.state.config.ENABLE_WEB_SEARCH,
@@ -2014,7 +2037,10 @@ async def get_current_usage(user=Depends(get_verified_user)):
     This is an experimental endpoint and subject to change.
     """
     try:
-        return {"model_ids": get_models_in_use(), "user_ids": get_active_user_ids()}
+        return {
+            "model_ids": get_models_in_use(),
+            "user_count": Users.get_active_user_count(),
+        }
     except Exception as e:
         log.error(f"Error getting usage statistics: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -2053,7 +2079,8 @@ try:
     if ENABLE_STAR_SESSIONS_MIDDLEWARE:
         redis_session_store = RedisStore(
             url=REDIS_URL,
-            prefix=(f"{REDIS_KEY_PREFIX}:session:" if REDIS_KEY_PREFIX else "session:"),
+            prefix=(
+                f"{REDIS_KEY_PREFIX}:session:" if REDIS_KEY_PREFIX else "session:"),
         )
 
         app.add_middleware(SessionAutoloadMiddleware)
@@ -2077,7 +2104,7 @@ except Exception as e:
     )
 
 
-async def register_client(self, request, client_id: str) -> bool:
+async def register_client(request, client_id: str) -> bool:
     server_type, server_id = client_id.split(":", 1)
 
     connection = None
@@ -2110,7 +2137,8 @@ async def register_client(self, request, client_id: str) -> bool:
             )
         )
     except Exception as e:
-        log.error(f"Dynamic client re-registration failed for {client_id}: {e}")
+        log.error(
+            f"Dynamic client re-registration failed for {client_id}: {e}")
         return False
 
     try:
