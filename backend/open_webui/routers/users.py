@@ -169,6 +169,9 @@ class WorkspacePermissions(BaseModel):
     prompts_export: bool = False
     tools_import: bool = False
     tools_export: bool = False
+    apps: bool = False
+    apps_import: bool = False
+    apps_export: bool = False
 
 
 class SharingPermissions(BaseModel):
@@ -182,6 +185,8 @@ class SharingPermissions(BaseModel):
     public_tools: bool = True
     notes: bool = False
     public_notes: bool = True
+    apps: bool = False
+    public_apps: bool = False
 
 
 class ChatPermissions(BaseModel):
@@ -227,6 +232,7 @@ class UserPermissions(BaseModel):
 
 @router.get("/default/permissions", response_model=UserPermissions)
 async def get_default_user_permissions(request: Request, user=Depends(get_admin_user)):
+    print(request.app.state.config.USER_PERMISSIONS)
     return {
         "workspace": WorkspacePermissions(
             **request.app.state.config.USER_PERMISSIONS.get("workspace", {})
@@ -247,6 +253,7 @@ async def get_default_user_permissions(request: Request, user=Depends(get_admin_
 async def update_default_user_permissions(
     request: Request, form_data: UserPermissions, user=Depends(get_admin_user)
 ):
+    print(form_data.model_dump())
     request.app.state.config.USER_PERMISSIONS = form_data.model_dump()
     return request.app.state.config.USER_PERMISSIONS
 
@@ -368,7 +375,8 @@ async def update_user_info_by_session_user(
         if user.info is None:
             user.info = {}
 
-        user = Users.update_user_by_id(user.id, {"info": {**user.info, **form_data}})
+        user = Users.update_user_by_id(
+            user.id, {"info": {**user.info, **form_data}})
         if user:
             return user.info
         else:
@@ -464,7 +472,8 @@ async def get_user_profile_image_by_id(user_id: str, user=Depends(get_verified_u
                     return StreamingResponse(
                         image_buffer,
                         media_type="image/png",
-                        headers={"Content-Disposition": "inline; filename=image.png"},
+                        headers={
+                            "Content-Disposition": "inline; filename=image.png"},
                     )
                 except Exception as e:
                     pass

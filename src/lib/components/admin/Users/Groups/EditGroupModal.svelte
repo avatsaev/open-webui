@@ -47,7 +47,10 @@
 			prompts_import: false,
 			prompts_export: false,
 			tools_import: false,
-			tools_export: false
+			tools_export: false,
+			apps: false,
+			apps_import: false,
+			apps_export: false
 		},
 		sharing: {
 			models: false,
@@ -59,7 +62,9 @@
 			tools: false,
 			public_tools: false,
 			notes: false,
-			public_notes: false
+			public_notes: false,
+			apps: false,
+			apps_public: false
 		},
 		chat: {
 			controls: true,
