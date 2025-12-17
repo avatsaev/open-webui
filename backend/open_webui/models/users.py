@@ -303,7 +303,8 @@ class UsersTable:
 
                 query = db.query(User)
                 if dialect_name == "sqlite":
-                    query = query.filter(User.oauth.contains({provider: {"sub": sub}}))
+                    query = query.filter(
+                        User.oauth.contains({provider: {"sub": sub}}))
                 elif dialect_name == "postgresql":
                     query = query.filter(
                         User.oauth[provider].cast(JSONB)["sub"].astext == sub
@@ -369,8 +370,10 @@ class UsersTable:
 
                 roles = filter.get("roles")
                 if roles:
-                    include_roles = [role for role in roles if not role.startswith("!")]
-                    exclude_roles = [role[1:] for role in roles if role.startswith("!")]
+                    include_roles = [
+                        role for role in roles if not role.startswith("!")]
+                    exclude_roles = [role[1:]
+                                     for role in roles if role.startswith("!")]
 
                     if include_roles:
                         query = query.filter(User.role.in_(include_roles))
@@ -395,9 +398,11 @@ class UsersTable:
                     group_sort = case((membership_exists, 1), else_=0)
 
                     if direction == "asc":
-                        query = query.order_by(group_sort.asc(), User.name.asc())
+                        query = query.order_by(
+                            group_sort.asc(), User.name.asc())
                     else:
-                        query = query.order_by(group_sort.desc(), User.name.asc())
+                        query = query.order_by(
+                            group_sort.desc(), User.name.asc())
 
                 elif order_by == "name":
                     if direction == "asc":
@@ -502,7 +507,8 @@ class UsersTable:
     def get_num_users_active_today(self) -> Optional[int]:
         with get_db() as db:
             current_timestamp = int(datetime.datetime.now().timestamp())
-            today_midnight_timestamp = current_timestamp - (current_timestamp % 86400)
+            today_midnight_timestamp = current_timestamp - \
+                (current_timestamp % 86400)
             query = db.query(User).filter(
                 User.last_active_at > today_midnight_timestamp
             )
@@ -610,14 +616,16 @@ class UsersTable:
     def update_user_settings_by_id(self, id: str, updated: dict) -> Optional[UserModel]:
         try:
             with get_db() as db:
-                user_settings = db.query(User).filter_by(id=id).first().settings
+                user_settings = db.query(User).filter_by(
+                    id=id).first().settings
 
                 if user_settings is None:
                     user_settings = {}
 
                 user_settings.update(updated)
 
-                db.query(User).filter_by(id=id).update({"settings": user_settings})
+                db.query(User).filter_by(id=id).update(
+                    {"settings": user_settings})
                 db.commit()
 
                 user = db.query(User).filter_by(id=id).first()
@@ -701,7 +709,8 @@ class UsersTable:
             # Consider user active if last_active_at within the last 3 minutes
             three_minutes_ago = int(time.time()) - 180
             count = (
-                db.query(User).filter(User.last_active_at >= three_minutes_ago).count()
+                db.query(User).filter(User.last_active_at >=
+                                      three_minutes_ago).count()
             )
             return count
 

@@ -11,8 +11,11 @@
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
 	import Link from '$lib/components/icons/Link.svelte';
+	import Eye from '$lib/components/icons/Eye.svelte';
+	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 
-	import { config, user as currentUser } from '$lib/stores';
+	import { config, user as currentUser, settings } from '$lib/stores';
+	import { updateUserSettings } from '$lib/apis/users';
 
 	const i18n = getContext('i18n');
 
@@ -28,6 +31,19 @@
 	export let onClose: Function;
 
 	let show = false;
+
+	const pinAppHandler = async (appId) => {
+		let pinnedApps = $settings?.pinnedApps ?? [];
+
+		if (pinnedApps.includes(appId)) {
+			pinnedApps = pinnedApps.filter((id) => id !== appId);
+		} else {
+			pinnedApps = [...new Set([...pinnedApps, appId])];
+		}
+
+		settings.set({ ...$settings, pinnedApps: pinnedApps });
+		await updateUserSettings(localStorage.token, { ui: $settings });
+	};
 </script>
 
 <Dropdown
@@ -57,6 +73,34 @@
 			align="start"
 			transition={flyAndScale}
 		>
+			<DropdownMenu.Item
+				type="button"
+				aria-pressed={($settings?.pinnedApps ?? []).includes(app?.id)}
+				class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
+				on:click={(e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					pinAppHandler(app?.id);
+					show = false;
+				}}
+			>
+				{#if ($settings?.pinnedApps ?? []).includes(app?.id)}
+					<EyeSlash />
+				{:else}
+					<Eye />
+				{/if}
+
+				<div class="flex items-center">
+					{#if ($settings?.pinnedApps ?? []).includes(app?.id)}
+						{$i18n.t('Hide from Sidebar')}
+					{:else}
+						{$i18n.t('Keep in Sidebar')}
+					{/if}
+				</div>
+			</DropdownMenu.Item>
+
+			<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
+
 			<DropdownMenu.Item
 				class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
 				on:click={() => {

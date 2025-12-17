@@ -370,6 +370,7 @@ from open_webui.config import (
     DEFAULT_PROMPT_SUGGESTIONS,
     DEFAULT_MODELS,
     DEFAULT_PINNED_MODELS,
+    DEFAULT_PINNED_APPS,
     DEFAULT_ARENA_MODEL,
     MODEL_ORDER_LIST,
     EVALUATION_ARENA_MODELS,
@@ -754,6 +755,7 @@ app.state.config.ADMIN_EMAIL = ADMIN_EMAIL
 
 app.state.config.DEFAULT_MODELS = DEFAULT_MODELS
 app.state.config.DEFAULT_PINNED_MODELS = DEFAULT_PINNED_MODELS
+app.state.config.DEFAULT_PINNED_APPS = DEFAULT_PINNED_APPS
 app.state.config.MODEL_ORDER_LIST = MODEL_ORDER_LIST
 
 
@@ -1896,6 +1898,7 @@ async def get_app_config(request: Request):
             {
                 "default_models": app.state.config.DEFAULT_MODELS,
                 "default_pinned_models": app.state.config.DEFAULT_PINNED_MODELS,
+                "default_pinned_apps": app.state.config.DEFAULT_PINNED_APPS,
                 "default_prompt_suggestions": app.state.config.DEFAULT_PROMPT_SUGGESTIONS,
                 "user_count": user_count,
                 "code": {
