@@ -13,9 +13,11 @@
 	import Link from '$lib/components/icons/Link.svelte';
 	import Eye from '$lib/components/icons/Eye.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
+	import ChatBubbles from '$lib/components/icons/ChatBubbles.svelte';
 
 	import { config, user as currentUser, settings } from '$lib/stores';
 	import { updateUserSettings } from '$lib/apis/users';
+	import { goto } from '$app/navigation';
 
 	const i18n = getContext('i18n');
 
@@ -121,6 +123,19 @@
 
 				<div class="flex items-center">{$i18n.t('Clone')}</div>
 			</DropdownMenu.Item>
+
+			{#if app?.source_chat_id}
+				<DropdownMenu.Item
+					class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
+					on:click={() => {
+						goto(`/c/${app.source_chat_id}`);
+					}}
+				>
+					<ChatBubbles />
+
+					<div class="flex items-center">{$i18n.t('Go to chat')}</div>
+				</DropdownMenu.Item>
+			{/if}
 
 			<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
 
