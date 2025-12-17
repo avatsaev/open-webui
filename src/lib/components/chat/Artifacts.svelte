@@ -15,6 +15,7 @@
 		createAppFromArtifactCode
 	} from '$lib/stores';
 	import { copyToClipboard, createMessagesList } from '$lib/utils';
+	import { getAppBySourceChatId, updateAppById } from '$lib/apis/apps';
 
 	import XMark from '../icons/XMark.svelte';
 	import ArrowsPointingOut from '../icons/ArrowsPointingOut.svelte';
@@ -33,6 +34,7 @@
 
 	let copied = false;
 	let iframeElement: HTMLIFrameElement;
+	let existingApp = null;
 
 	function navigateContent(direction: 'prev' | 'next') {
 		selectedContentIdx =
@@ -94,6 +96,20 @@
 		URL.revokeObjectURL(url);
 	};
 
+	const checkExistingApp = async () => {
+		if ($chatId && enableCreateApp && localStorage.token) {
+			try {
+				existingApp = await getAppBySourceChatId(localStorage.token, $chatId);
+				console.log('Existing app found:', existingApp);
+			} catch (error) {
+				// Silently handle error - app doesn't exist or fetch failed
+				existingApp = null;
+			}
+		} else {
+			existingApp = null;
+		}
+	};
+
 	const createAppHandler = async () => {
 		if (contents.length > 0 && enableCreateApp) {
 			createAppFromArtifactCode.set({
@@ -101,6 +117,16 @@
 				sourceChatId: $chatId
 			});
 			goto('/workspace/apps/create');
+		}
+	};
+
+	const updateAppHandler = async () => {
+		if (contents.length > 0 && enableCreateApp && existingApp) {
+			createAppFromArtifactCode.set({
+				sourceCode: contents[selectedContentIdx].content,
+				sourceChatId: $chatId
+			});
+			goto(`/workspace/apps/edit?id=${encodeURIComponent(existingApp.id)}`);
 		}
 	};
 
@@ -123,7 +149,13 @@
 
 			selectedContentIdx = contents ? contents.length - 1 : 0;
 		});
+
+		checkExistingApp();
 	});
+
+	$: if ($chatId && enableCreateApp) {
+		checkExistingApp();
+	}
 </script>
 
 <div
@@ -203,12 +235,16 @@
 								}}>{copied ? $i18n.t('Copied') : $i18n.t('Copy')}</button
 							>
 							{#if enableCreateApp}
-								<Tooltip content={$i18n.t('Create an app from this artifact')}>
+								<Tooltip
+									content={existingApp
+										? $i18n.t('Update the existing app')
+										: $i18n.t('Create an app from this artifact')}
+								>
 									<button
 										class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
-										on:click={createAppHandler}
+										on:click={existingApp ? updateAppHandler : createAppHandler}
 									>
-										{$i18n.t('Create app')}
+										{existingApp ? $i18n.t('Update app') : $i18n.t('Create app')}
 									</button>
 								</Tooltip>
 							{/if}

@@ -283,6 +283,14 @@ class AppsTable:
         except Exception:
             return None
 
+    def get_app_by_source_chat_id(self, source_chat_id: str) -> Optional[AppModel]:
+        try:
+            with get_db() as db:
+                app = db.query(App).filter_by(source_chat_id=source_chat_id).first()
+                return AppModel.model_validate(app.__dict__) if app else None
+        except Exception:
+            return None
+
     def toggle_app_by_id(self, id: str) -> Optional[AppModel]:
         with get_db() as db:
             try:

@@ -35,7 +35,6 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
-
 ###########################
 # GetApps
 ###########################
@@ -80,6 +79,32 @@ async def get_apps(
     return Apps.search_apps(user.id, filter=filter, skip=skip, limit=limit)
 
 
+###########################
+# GetApp by source chat id
+###########################
+
+@router.get("/by_source_chat", response_model=Optional[AppResponse])
+async def get_app_by_source_chat_id(
+    source_chat_id: str, user=Depends(get_verified_user)
+):
+    app = Apps.get_app_by_source_chat_id(source_chat_id)
+    if app:
+        if (
+            (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
+            or app.user_id == user.id
+            or has_access(user.id, "read", app.access_control)
+        ):
+            return app
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ERROR_MESSAGES.UNAUTHORIZED,
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
 ###########################
 # GetAppTags
 ###########################
@@ -129,7 +154,6 @@ async def create_new_app(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ERROR_MESSAGES.MODEL_ID_TAKEN,
         )
-
 
     else:
         app = Apps.insert_new_app(form_data, user.id)
@@ -191,7 +215,6 @@ async def import_apps(
             for app_data in data:
                 # Here, you can add logic to validate app_data if needed
                 app_id = app_data.get("id")
-
 
                 existing_app = Apps.get_app_by_id(app_id)
                 if existing_app:
@@ -270,7 +293,8 @@ async def get_app_icon_image(id: str, user=Depends(get_verified_user)):
                     return StreamingResponse(
                         image_buffer,
                         media_type="image/png",
-                        headers={"Content-Disposition": "inline; filename=image.png"},
+                        headers={
+                            "Content-Disposition": "inline; filename=image.png"},
                     )
                 except Exception as e:
                     pass
@@ -342,7 +366,8 @@ async def update_app_by_id(
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
         )
 
-    app = Apps.update_app_by_id(form_data.id, AppForm(**form_data.model_dump()))
+    app = Apps.update_app_by_id(
+        form_data.id, AppForm(**form_data.model_dump()))
     return app
 
 
