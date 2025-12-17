@@ -2,6 +2,7 @@
 	import Sortable from 'sortablejs';
 
 	import { onDestroy, onMount, tick } from 'svelte';
+	import { goto } from '$app/navigation';
 
 	import { chatId, config, mobile, settings, showSidebar } from '$lib/stores';
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -96,9 +97,11 @@
 		<PinnedAppItem
 			{app}
 			{shiftKey}
-			onClick={() => {
+			onClick={(e) => {
+				e.preventDefault();
 				selectedChatId = null;
 				chatId.set('');
+				goto(`/apps/${encodeURIComponent(app.id)}`);
 				if ($mobile) {
 					showSidebar.set(false);
 				}

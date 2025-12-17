@@ -11,7 +11,7 @@
 	export let id = '';
 	let history: Array<{ type: string; content: string }> = [];
 
-	onMount(async () => {
+	const loadApp = async () => {
 		loading = true;
 		app = await getAppById(localStorage.token, id);
 		history = [{ type: 'iframe', content: app.source_code }];
@@ -19,11 +19,19 @@
 		artifactContents.set(history);
 		await tick();
 		loading = false;
+	};
+
+	onMount(async () => {
+		await loadApp();
 	});
 
 	onDestroy(() => {
 		artifactContents.set([]);
 	});
+
+	$: if (id) {
+		loadApp();
+	}
 </script>
 
 <svelte:head>
