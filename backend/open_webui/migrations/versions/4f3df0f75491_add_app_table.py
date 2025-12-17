@@ -1,7 +1,7 @@
 """Add app table
 
 Revision ID: 4f3df0f75491
-Revises: 37f288994c47
+Revises: 3e0e00844bb0
 Create Date: 2025-12-01 17:48:11.782664
 
 """
@@ -15,14 +15,14 @@ from open_webui.migrations.util import get_existing_tables
 
 # revision identifiers, used by Alembic.
 revision: str = '4f3df0f75491'
-down_revision: Union[str, None] = '37f288994c47'
+down_revision: Union[str, None] = '3e0e00844bb0'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
     existing_tables = set(get_existing_tables())
-    
+
     if "app" not in existing_tables:
         op.create_table(
             "app",

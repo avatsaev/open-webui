@@ -12,6 +12,7 @@ docker rm "$container_name" &>/dev/null || true
 docker run -d -p "$host_port":"$container_port" \
     --add-host=host.docker.internal:host-gateway \
     -e "ENV=dev" \
+    -e "DATABASE_URL=${DATABASE_URL}" \
     -v "${image_name}:/app/backend/data" \
     --name "$container_name" \
     --restart always \
