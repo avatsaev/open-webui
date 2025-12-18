@@ -10,6 +10,7 @@
 	import { getAppById, updateAppById } from '$lib/apis/apps';
 
 	import AppEditor from '$lib/components/workspace/Apps/AppEditor.svelte';
+	import { updateAppFromArtifactCode } from '$lib/stores';
 
 	let app = null;
 
@@ -19,6 +20,11 @@
 			app = await getAppById(localStorage.token, _id).catch((e) => {
 				return null;
 			});
+
+			if ($updateAppFromArtifactCode?.sourceCode?.length > 0) {
+				app.source_code = $updateAppFromArtifactCode.sourceCode;
+				updateAppFromArtifactCode.set(null);
+			}
 
 			if (!app) {
 				goto('/workspace/apps');

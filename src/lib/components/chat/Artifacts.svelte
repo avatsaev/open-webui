@@ -12,7 +12,8 @@
 		showArtifacts,
 		showControls,
 		artifactContents,
-		createAppFromArtifactCode
+		createAppFromArtifactCode,
+		updateAppFromArtifactCode
 	} from '$lib/stores';
 	import { copyToClipboard, createMessagesList } from '$lib/utils';
 	import { getAppBySourceChatId, updateAppById } from '$lib/apis/apps';
@@ -122,9 +123,8 @@
 
 	const updateAppHandler = async () => {
 		if (contents.length > 0 && enableCreateApp && existingApp) {
-			createAppFromArtifactCode.set({
-				sourceCode: contents[selectedContentIdx].content,
-				sourceChatId: $chatId
+			updateAppFromArtifactCode.set({
+				sourceCode: contents[selectedContentIdx].content
 			});
 			goto(`/workspace/apps/edit?id=${encodeURIComponent(existingApp.id)}`);
 		}
