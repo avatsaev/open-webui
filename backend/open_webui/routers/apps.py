@@ -12,6 +12,7 @@ from open_webui.models.apps import (
     AppListResponse,
     Apps,
 )
+from open_webui.models.groups import Groups
 
 from pydantic import BaseModel
 from open_webui.constants import ERROR_MESSAGES
@@ -74,6 +75,10 @@ async def get_apps(
         filter["direction"] = direction
 
     if not user.role == "admin" or not BYPASS_ADMIN_ACCESS_CONTROL:
+        groups = Groups.get_groups_by_member_id(user.id)
+        if groups:
+            filter["group_ids"] = [group.id for group in groups]
+
         filter["user_id"] = user.id
 
     return Apps.search_apps(user.id, filter=filter, skip=skip, limit=limit)
@@ -254,7 +259,11 @@ class AppIdForm(BaseModel):
 # Note: We're not using the typical url path param here, but instead using a query parameter to allow '/' in the id
 @router.get("/app", response_model=Optional[AppResponse])
 async def get_app_by_id(id: str, user=Depends(get_verified_user)):
+    print("--------------------------------")
     app = Apps.get_app_by_id(id)
+    print(app)
+    print(user)
+    print("--------------------------------")
     if app:
         if (
             (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)

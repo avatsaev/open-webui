@@ -1,10 +1,14 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
+	import { onMount, onDestroy, tick, getContext } from 'svelte';
 	import { writable } from 'svelte/store';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import { showSidebar } from '$lib/stores';
 	import { getAppById } from '$lib/apis/apps';
 	import Artifacts from '$lib/components/chat/Artifacts.svelte';
 	import { artifactCode, artifactContents } from '$lib/stores';
+
+	const i18n = getContext('i18n');
 
 	let loading = false;
 	let app = null;
@@ -13,12 +17,25 @@
 
 	const loadApp = async () => {
 		loading = true;
-		app = await getAppById(localStorage.token, id);
-		history = [{ type: 'iframe', content: app.source_code }];
+		try {
+			app = await getAppById(localStorage.token, id);
+			if (!app) {
+				toast.error($i18n.t('App not found'));
+				goto('/');
+				return;
+			}
+			history = [{ type: 'iframe', content: app.source_code }];
 
-		artifactContents.set(history);
-		await tick();
-		loading = false;
+			artifactContents.set(history);
+			await tick();
+		} catch (error) {
+			console.error(error);
+			toast.error($i18n.t('App not found'));
+			goto('/');
+			return;
+		} finally {
+			loading = false;
+		}
 	};
 
 	onMount(async () => {
@@ -28,10 +45,6 @@
 	onDestroy(() => {
 		artifactContents.set([]);
 	});
-
-	$: if (id) {
-		loadApp();
-	}
 </script>
 
 <svelte:head>

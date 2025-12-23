@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 from sqlalchemy import String, cast, or_, and_, func
 from sqlalchemy.dialects import postgresql, sqlite
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import BigInteger, Column, Text, JSON, Boolean
 
 
@@ -104,6 +105,8 @@ class App(Base):
 
 
 class AppModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     source_chat_id: Optional[str] = None
@@ -166,12 +169,12 @@ class AppsTable:
                 db.refresh(result)
 
                 if result:
-                    log.debug(f"Inserted app: {result.__dict__}")
+                    log.debug(f"Inserted app: {result}")
                     try:
-                        return AppModel.model_validate(result.__dict__)
+                        return AppModel.model_validate(result)
                     except Exception as validation_error:
                         log.exception(
-                            f"Failed to validate app model for result {result.__dict__}: {validation_error}")
+                            f"Failed to validate app model for result {result}: {validation_error}")
                         return None
                 else:
                     return None
@@ -181,7 +184,7 @@ class AppsTable:
 
     def get_apps(self) -> list[AppModel]:
         with get_db() as db:
-            return [AppModel.model_validate(app.__dict__) for app in db.query(App).all()]
+            return [AppModel.model_validate(app) for app in db.query(App).all()]
 
     def get_apps_by_user_id(
         self, user_id: str, permission: str = "write"
@@ -196,6 +199,49 @@ class AppsTable:
             or has_access(user_id, permission, app.access_control, user_group_ids)
         ]
 
+    def _has_permission(self, db, query, filter: dict, permission: str = "read"):
+        group_ids = filter.get("group_ids", [])
+        user_id = filter.get("user_id")
+
+        dialect_name = db.bind.dialect.name
+
+        # Public access
+        conditions = []
+        if group_ids or user_id:
+            conditions.extend(
+                [
+                    App.access_control.is_(None),
+                    cast(App.access_control, String) == "null",
+                ]
+            )
+
+        # User-level permission
+        if user_id:
+            conditions.append(App.user_id == user_id)
+
+        # Group-level permission
+        if group_ids:
+            group_conditions = []
+            for gid in group_ids:
+                if dialect_name == "sqlite":
+                    group_conditions.append(
+                        App.access_control[permission]["group_ids"].contains([
+                                                                             gid])
+                    )
+                elif dialect_name == "postgresql":
+                    group_conditions.append(
+                        cast(
+                            App.access_control[permission]["group_ids"],
+                            JSONB,
+                        ).contains([gid])
+                    )
+            conditions.append(or_(*group_conditions))
+
+        if conditions:
+            query = query.filter(or_(*conditions))
+
+        return query
+
     def search_apps(
         self, user_id: str, filter: dict = {}, skip: int = 0, limit: int = 30
     ) -> AppListResponse:
@@ -208,15 +254,19 @@ class AppsTable:
                 if query_key:
                     query = query.filter(App.title.ilike(f"%{query_key}%"))
 
-                if filter.get("user_id"):
-                    query = query.filter(App.user_id == filter.get("user_id"))
-
                 view_option = filter.get("view_option")
-
                 if view_option == "created":
                     query = query.filter(App.user_id == user_id)
                 elif view_option == "shared":
                     query = query.filter(App.user_id != user_id)
+
+                # Apply access control filtering
+                query = self._has_permission(
+                    db,
+                    query,
+                    filter,
+                    permission="write",
+                )
 
                 tag = filter.get("tag")
                 if tag:
@@ -263,10 +313,10 @@ class AppsTable:
             for app, user in items:
                 apps.append(
                     AppUserResponse(
-                        **AppModel.model_validate(app.__dict__).model_dump(),
+                        **AppModel.model_validate(app).model_dump(),
                         user=(
                             UserResponse(
-                                **UserModel.model_validate(user.__dict__).model_dump())
+                                **UserModel.model_validate(user).model_dump())
                             if user
                             else None
                         ),
@@ -279,7 +329,7 @@ class AppsTable:
         try:
             with get_db() as db:
                 app = db.get(App, id)
-                return AppModel.model_validate(app.__dict__) if app else None
+                return AppModel.model_validate(app) if app else None
         except Exception:
             return None
 
@@ -288,7 +338,7 @@ class AppsTable:
             with get_db() as db:
                 app = db.query(App).filter_by(
                     source_chat_id=source_chat_id).first()
-                return AppModel.model_validate(app.__dict__) if app else None
+                return AppModel.model_validate(app) if app else None
         except Exception:
             return None
 
@@ -321,7 +371,7 @@ class AppsTable:
 
                 app = db.get(App, id)
                 db.refresh(app)
-                return AppModel.model_validate(app.__dict__)
+                return AppModel.model_validate(app)
         except Exception as e:
             log.exception(f"Failed to update the app by id {id}: {e}")
             return None
