@@ -12,12 +12,15 @@
 			knowledge: false,
 			prompts: false,
 			tools: false,
+			apps: false,
 			models_import: false,
 			models_export: false,
 			prompts_import: false,
 			prompts_export: false,
 			tools_import: false,
-			tools_export: false
+			tools_export: false,
+			apps_import: false,
+			apps_export: false
 		},
 		sharing: {
 			models: false,
@@ -29,7 +32,9 @@
 			tools: false,
 			public_tools: false,
 			notes: false,
-			public_notes: false
+			public_notes: false,
+			apps: false,
+			public_apps: false
 		},
 		chat: {
 			controls: true,
@@ -214,6 +219,37 @@
 				</div>
 			{/if}
 		</div>
+		<div class="flex flex-col w-full">
+			<div class="flex w-full justify-between my-1">
+				<div class=" self-center text-xs font-medium">
+					{$i18n.t('Apps access')}
+				</div>
+				<Switch bind:state={permissions.workspace.apps} />
+			</div>
+
+			{#if permissions.workspace.apps}
+				<div class="ml-2 flex flex-col gap-2 pt-0.5 pb-1">
+					<div class="flex w-full justify-between">
+						<div class="self-center text-xs">
+							{$i18n.t('Import Apps')}
+						</div>
+						<Switch bind:state={permissions.workspace.apps_import} />
+					</div>
+					<div class="flex w-full justify-between">
+						<div class="self-center text-xs">
+							{$i18n.t('Export Apps')}
+						</div>
+						<Switch bind:state={permissions.workspace.apps_export} />
+					</div>
+				</div>
+			{:else if defaultPermissions?.workspace?.apps}
+				<div class="pb-0.5">
+					<div class="text-xs text-gray-500">
+						{$i18n.t('This is a default user permission and will remain enabled.')}
+					</div>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<hr class=" border-gray-100/30 dark:border-gray-850/30" />
@@ -314,6 +350,40 @@
 					<Switch bind:state={permissions.sharing.public_prompts} />
 				</div>
 				{#if defaultPermissions?.sharing?.public_prompts && !permissions.sharing.public_prompts}
+					<div>
+						<div class="text-xs text-gray-500">
+							{$i18n.t('This is a default user permission and will remain enabled.')}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<div class="flex flex-col w-full">
+			<div class="flex w-full justify-between my-1">
+				<div class=" self-center text-xs font-medium">
+					{$i18n.t('Apps Sharing')}
+				</div>
+				<Switch bind:state={permissions.sharing.apps} />
+			</div>
+			{#if defaultPermissions?.sharing?.apps && !permissions.sharing.apps}
+				<div>
+					<div class="text-xs text-gray-500">
+						{$i18n.t('This is a default user permission and will remain enabled.')}
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		{#if permissions.sharing.apps}
+			<div class="flex flex-col w-full">
+				<div class="flex w-full justify-between my-1">
+					<div class=" self-center text-xs font-medium">
+						{$i18n.t('Apps Public Sharing')}
+					</div>
+					<Switch bind:state={permissions.sharing.public_apps} />
+				</div>
+				{#if defaultPermissions?.sharing?.public_apps && !permissions.sharing.public_apps}
 					<div>
 						<div class="text-xs text-gray-500">
 							{$i18n.t('This is a default user permission and will remain enabled.')}

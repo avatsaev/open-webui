@@ -93,6 +93,7 @@ from open_webui.routers import (
     users,
     utils,
     scim,
+    apps
 )
 
 from open_webui.routers.retrieval import (
@@ -369,6 +370,7 @@ from open_webui.config import (
     DEFAULT_PROMPT_SUGGESTIONS,
     DEFAULT_MODELS,
     DEFAULT_PINNED_MODELS,
+    DEFAULT_PINNED_APPS,
     DEFAULT_ARENA_MODEL,
     MODEL_ORDER_LIST,
     EVALUATION_ARENA_MODELS,
@@ -645,7 +647,8 @@ app.state.oauth_client_manager = oauth_client_manager
 app.state.instance_id = None
 app.state.config = AppConfig(
     redis_url=REDIS_URL,
-    redis_sentinels=get_sentinels_from_env(REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT),
+    redis_sentinels=get_sentinels_from_env(
+        REDIS_SENTINEL_HOSTS, REDIS_SENTINEL_PORT),
     redis_cluster=REDIS_CLUSTER,
     redis_key_prefix=REDIS_KEY_PREFIX,
 )
@@ -752,6 +755,7 @@ app.state.config.ADMIN_EMAIL = ADMIN_EMAIL
 
 app.state.config.DEFAULT_MODELS = DEFAULT_MODELS
 app.state.config.DEFAULT_PINNED_MODELS = DEFAULT_PINNED_MODELS
+app.state.config.DEFAULT_PINNED_APPS = DEFAULT_PINNED_APPS
 app.state.config.MODEL_ORDER_LIST = MODEL_ORDER_LIST
 
 
@@ -1291,7 +1295,8 @@ class APIKeyRestrictionMiddleware(BaseHTTPMiddleware):
 
                 # Match exact path or prefix path
                 is_allowed = any(
-                    request_path == allowed or request_path.startswith(allowed + "/")
+                    request_path == allowed or request_path.startswith(
+                        allowed + "/")
                     for allowed in allowed_paths
                 )
 
@@ -1339,7 +1344,8 @@ async def inspect_websocket(request: Request, call_next):
         and request.query_params.get("transport") == "websocket"
     ):
         upgrade = (request.headers.get("Upgrade") or "").lower()
-        connection = (request.headers.get("Connection") or "").lower().split(",")
+        connection = (request.headers.get("Connection")
+                      or "").lower().split(",")
         # Check that there's the correct headers for an upgrade, else reject the connection
         # This is to work around this upstream issue: https://github.com/miguelgrinberg/python-engineio/issues/367
         if upgrade != "websocket" or "upgrade" not in connection:
@@ -1366,12 +1372,14 @@ app.include_router(ollama.router, prefix="/ollama", tags=["ollama"])
 app.include_router(openai.router, prefix="/openai", tags=["openai"])
 
 
-app.include_router(pipelines.router, prefix="/api/v1/pipelines", tags=["pipelines"])
+app.include_router(
+    pipelines.router, prefix="/api/v1/pipelines", tags=["pipelines"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(images.router, prefix="/api/v1/images", tags=["images"])
 
 app.include_router(audio.router, prefix="/api/v1/audio", tags=["audio"])
-app.include_router(retrieval.router, prefix="/api/v1/retrieval", tags=["retrieval"])
+app.include_router(
+    retrieval.router, prefix="/api/v1/retrieval", tags=["retrieval"])
 
 app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 
@@ -1379,25 +1387,31 @@ app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 
-app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
+app.include_router(
+    channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
 app.include_router(notes.router, prefix="/api/v1/notes", tags=["notes"])
 
 
 app.include_router(models.router, prefix="/api/v1/models", tags=["models"])
-app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
+app.include_router(
+    knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(prompts.router, prefix="/api/v1/prompts", tags=["prompts"])
 app.include_router(tools.router, prefix="/api/v1/tools", tags=["tools"])
+app.include_router(apps.router, prefix="/api/v1/apps", tags=["apps"])
 
-app.include_router(memories.router, prefix="/api/v1/memories", tags=["memories"])
+app.include_router(
+    memories.router, prefix="/api/v1/memories", tags=["memories"])
 app.include_router(folders.router, prefix="/api/v1/folders", tags=["folders"])
 app.include_router(groups.router, prefix="/api/v1/groups", tags=["groups"])
 app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
-app.include_router(functions.router, prefix="/api/v1/functions", tags=["functions"])
+app.include_router(
+    functions.router, prefix="/api/v1/functions", tags=["functions"])
 app.include_router(
     evaluations.router, prefix="/api/v1/evaluations", tags=["evaluations"]
 )
 app.include_router(utils.router, prefix="/api/v1/utils", tags=["utils"])
+
 
 # SCIM 2.0 API for identity management
 if ENABLE_SCIM:
@@ -1459,7 +1473,8 @@ async def get_models(
 
     model_order_list = request.app.state.config.MODEL_ORDER_LIST
     if model_order_list:
-        model_order_dict = {model_id: i for i, model_id in enumerate(model_order_list)}
+        model_order_dict = {model_id: i for i,
+                            model_id in enumerate(model_order_list)}
         # Sort models by order list priority, with fallback for those not in the list
         models.sort(
             key=lambda model: (
@@ -1515,7 +1530,8 @@ async def embeddings(
 
 
 @app.post("/api/chat/completions")
-@app.post("/api/v1/chat/completions")  # Experimental: Compatibility with OpenAI API
+# Experimental: Compatibility with OpenAI API
+@app.post("/api/v1/chat/completions")
 async def chat_completion(
     request: Request,
     form_data: dict,
@@ -1567,7 +1583,8 @@ async def chat_completion(
             form_data["stream"] = model_info_params.get("stream_response")
 
         if model_info_params.get("stream_delta_chunk_size"):
-            stream_delta_chunk_size = model_info_params.get("stream_delta_chunk_size")
+            stream_delta_chunk_size = model_info_params.get(
+                "stream_delta_chunk_size")
 
         if model_info_params.get("reasoning_tags") is not None:
             reasoning_tags = model_info_params.get("reasoning_tags")
@@ -1592,7 +1609,8 @@ async def chat_completion(
                 "function_calling": (
                     "native"
                     if (
-                        form_data.get("params", {}).get("function_calling") == "native"
+                        form_data.get("params", {}).get(
+                            "function_calling") == "native"
                         or model_info_params.get("function_calling") == "native"
                     )
                     else "default"
@@ -1602,7 +1620,8 @@ async def chat_completion(
 
         if metadata.get("chat_id") and (user and user.role != "admin"):
             if not metadata["chat_id"].startswith("local:"):
-                chat = Chats.get_chat_by_id_and_user_id(metadata["chat_id"], user.id)
+                chat = Chats.get_chat_by_id_and_user_id(
+                    metadata["chat_id"], user.id)
                 if chat is None:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
@@ -1760,7 +1779,8 @@ async def stop_task_endpoint(
         result = await stop_task(request.app.state.redis, task_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @app.get("/api/tasks")
@@ -1878,6 +1898,7 @@ async def get_app_config(request: Request):
             {
                 "default_models": app.state.config.DEFAULT_MODELS,
                 "default_pinned_models": app.state.config.DEFAULT_PINNED_MODELS,
+                "default_pinned_apps": app.state.config.DEFAULT_PINNED_APPS,
                 "default_prompt_suggestions": app.state.config.DEFAULT_PROMPT_SUGGESTIONS,
                 "user_count": user_count,
                 "code": {
@@ -2061,7 +2082,8 @@ try:
     if ENABLE_STAR_SESSIONS_MIDDLEWARE:
         redis_session_store = RedisStore(
             url=REDIS_URL,
-            prefix=(f"{REDIS_KEY_PREFIX}:session:" if REDIS_KEY_PREFIX else "session:"),
+            prefix=(
+                f"{REDIS_KEY_PREFIX}:session:" if REDIS_KEY_PREFIX else "session:"),
         )
 
         app.add_middleware(SessionAutoloadMiddleware)
@@ -2118,7 +2140,8 @@ async def register_client(request, client_id: str) -> bool:
             )
         )
     except Exception as e:
-        log.error(f"Dynamic client re-registration failed for {client_id}: {e}")
+        log.error(
+            f"Dynamic client re-registration failed for {client_id}: {e}")
         return False
 
     try:

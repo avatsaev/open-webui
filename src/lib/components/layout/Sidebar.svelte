@@ -60,6 +60,7 @@
 	import FolderModal from './Sidebar/Folders/FolderModal.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
+	import PinnedAppList from './Sidebar/PinnedAppList.svelte';
 	import Note from '../icons/Note.svelte';
 	import { slide } from 'svelte/transition';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
@@ -942,6 +943,18 @@
 						dragAndDrop={false}
 					>
 						<PinnedModelList bind:selectedChatId {shiftKey} />
+					</Folder>
+				{/if}
+
+				{#if ($settings?.pinnedApps ?? []).length > 0 || $config?.default_pinned_apps}
+					<Folder
+						id="sidebar-apps"
+						className="px-2 mt-0.5"
+						name={$i18n.t('Apps')}
+						chevron={false}
+						dragAndDrop={false}
+					>
+						<PinnedAppList bind:selectedChatId {shiftKey} />
 					</Folder>
 				{/if}
 

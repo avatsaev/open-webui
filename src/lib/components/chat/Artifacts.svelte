@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
+	import { goto } from '$app/navigation';
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
@@ -10,9 +11,12 @@
 		settings,
 		showArtifacts,
 		showControls,
-		artifactContents
+		artifactContents,
+		createAppFromArtifactCode,
+		updateAppFromArtifactCode
 	} from '$lib/stores';
 	import { copyToClipboard, createMessagesList } from '$lib/utils';
+	import { getAppBySourceChatId, updateAppById } from '$lib/apis/apps';
 
 	import XMark from '../icons/XMark.svelte';
 	import ArrowsPointingOut from '../icons/ArrowsPointingOut.svelte';
@@ -22,12 +26,16 @@
 	import Download from '../icons/Download.svelte';
 
 	export let overlay = false;
+	export let enableCreateApp = false;
+	export let enableAppViewMode = false;
+	export let appTitle = 'App';
 
 	let contents: Array<{ type: string; content: string }> = [];
 	let selectedContentIdx = 0;
 
 	let copied = false;
 	let iframeElement: HTMLIFrameElement;
+	let existingApp = null;
 
 	function navigateContent(direction: 'prev' | 'next') {
 		selectedContentIdx =
@@ -89,6 +97,39 @@
 		URL.revokeObjectURL(url);
 	};
 
+	const checkExistingApp = async () => {
+		if ($chatId && enableCreateApp && localStorage.token) {
+			try {
+				existingApp = await getAppBySourceChatId(localStorage.token, $chatId);
+				console.log('Existing app found:', existingApp);
+			} catch (error) {
+				// Silently handle error - app doesn't exist or fetch failed
+				existingApp = null;
+			}
+		} else {
+			existingApp = null;
+		}
+	};
+
+	const createAppHandler = async () => {
+		if (contents.length > 0 && enableCreateApp) {
+			createAppFromArtifactCode.set({
+				sourceCode: contents[selectedContentIdx].content,
+				sourceChatId: $chatId
+			});
+			goto('/workspace/apps/create');
+		}
+	};
+
+	const updateAppHandler = async () => {
+		if (contents.length > 0 && enableCreateApp && existingApp) {
+			updateAppFromArtifactCode.set({
+				sourceCode: contents[selectedContentIdx].content
+			});
+			goto(`/workspace/apps/edit?id=${encodeURIComponent(existingApp.id)}`);
+		}
+	};
+
 	onMount(() => {
 		artifactCode.subscribe((value) => {
 			if (contents) {
@@ -108,7 +149,13 @@
 
 			selectedContentIdx = contents ? contents.length - 1 : 0;
 		});
+
+		checkExistingApp();
 	});
+
+	$: if ($chatId && enableCreateApp) {
+		checkExistingApp();
+	}
 </script>
 
 <div
@@ -117,109 +164,131 @@
 >
 	<div class="w-full h-full flex flex-col flex-1 relative">
 		{#if contents.length > 0}
-			<div
-				class="pointer-events-auto z-20 flex justify-between items-center p-2.5 font-primar text-gray-900 dark:text-white"
-			>
-				<div class="flex-1 flex items-center justify-between pr-1">
-					<div class="flex items-center space-x-2">
-						<div class="flex items-center gap-0.5 self-center min-w-fit" dir="ltr">
-							<button
-								class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition disabled:cursor-not-allowed"
-								on:click={() => navigateContent('prev')}
-								disabled={contents.length <= 1}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2.5"
-									class="size-3.5"
+			{#if !enableAppViewMode}
+				<div
+					class="pointer-events-auto z-20 flex justify-between items-center p-2.5 font-primar text-gray-900 dark:text-white"
+				>
+					<div class="flex-1 flex items-center justify-between pr-1">
+						<div class="flex items-center space-x-2">
+							<div class="flex items-center gap-0.5 self-center min-w-fit" dir="ltr">
+								<button
+									class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition disabled:cursor-not-allowed"
+									on:click={() => navigateContent('prev')}
+									disabled={contents.length <= 1}
 								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M15.75 19.5 8.25 12l7.5-7.5"
-									/>
-								</svg>
-							</button>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2.5"
+										class="size-3.5"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											d="M15.75 19.5 8.25 12l7.5-7.5"
+										/>
+									</svg>
+								</button>
 
-							<div class="text-xs self-center dark:text-gray-100 min-w-fit">
-								{$i18n.t('Version {{selectedVersion}} of {{totalVersions}}', {
-									selectedVersion: selectedContentIdx + 1,
-									totalVersions: contents.length
-								})}
+								<div class="text-xs self-center dark:text-gray-100 min-w-fit">
+									{$i18n.t('Version {{selectedVersion}} of {{totalVersions}}', {
+										selectedVersion: selectedContentIdx + 1,
+										totalVersions: contents.length
+									})}
+								</div>
+
+								<button
+									class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition disabled:cursor-not-allowed"
+									on:click={() => navigateContent('next')}
+									disabled={contents.length <= 1}
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2.5"
+										class="size-3.5"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											d="m8.25 4.5 7.5 7.5-7.5 7.5"
+										/>
+									</svg>
+								</button>
 							</div>
+						</div>
 
+						<div class="flex items-center gap-1.5">
 							<button
-								class="self-center p-1 hover:bg-black/5 dark:hover:bg-white/5 dark:hover:text-white hover:text-black rounded-md transition disabled:cursor-not-allowed"
-								on:click={() => navigateContent('next')}
-								disabled={contents.length <= 1}
+								class="copy-code-button bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md px-1.5 py-0.5"
+								on:click={() => {
+									copyToClipboard(contents[selectedContentIdx].content);
+									copied = true;
+
+									setTimeout(() => {
+										copied = false;
+									}, 2000);
+								}}>{copied ? $i18n.t('Copied') : $i18n.t('Copy')}</button
 							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2.5"
-									class="size-3.5"
+							{#if enableCreateApp}
+								<Tooltip
+									content={existingApp
+										? $i18n.t('Update the existing app')
+										: $i18n.t('Create an app from this artifact')}
 								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="m8.25 4.5 7.5 7.5-7.5 7.5"
-									/>
-								</svg>
-							</button>
+									<button
+										class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+										on:click={existingApp ? updateAppHandler : createAppHandler}
+									>
+										{existingApp ? $i18n.t('Update app') : $i18n.t('Create app')}
+									</button>
+								</Tooltip>
+							{/if}
+
+							<Tooltip content={$i18n.t('Download')}>
+								<button
+									class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+									on:click={downloadArtifact}
+								>
+									<Download className="size-3.5" />
+								</button>
+							</Tooltip>
+
+							{#if contents[selectedContentIdx].type === 'iframe'}
+								<Tooltip content={$i18n.t('Open in full screen')}>
+									<button
+										class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+										on:click={showFullScreen}
+									>
+										<ArrowsPointingOut className="size-3.5" />
+									</button>
+								</Tooltip>
+							{/if}
 						</div>
 					</div>
 
-					<div class="flex items-center gap-1.5">
-						<button
-							class="copy-code-button bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md px-1.5 py-0.5"
-							on:click={() => {
-								copyToClipboard(contents[selectedContentIdx].content);
-								copied = true;
-
-								setTimeout(() => {
-									copied = false;
-								}, 2000);
-							}}>{copied ? $i18n.t('Copied') : $i18n.t('Copy')}</button
-						>
-
-						<Tooltip content={$i18n.t('Download')}>
-							<button
-								class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
-								on:click={downloadArtifact}
-							>
-								<Download className="size-3.5" />
-							</button>
-						</Tooltip>
-
-						{#if contents[selectedContentIdx].type === 'iframe'}
-							<Tooltip content={$i18n.t('Open in full screen')}>
-								<button
-									class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
-									on:click={showFullScreen}
-								>
-									<ArrowsPointingOut className="size-3.5" />
-								</button>
-							</Tooltip>
-						{/if}
-					</div>
+					<button
+						class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
+						on:click={() => {
+							dispatch('close');
+							showControls.set(false);
+							showArtifacts.set(false);
+						}}
+					>
+						<XMark className="size-3.5 text-gray-900 dark:text-white" />
+					</button>
 				</div>
-
-				<button
-					class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
-					on:click={() => {
-						dispatch('close');
-						showControls.set(false);
-						showArtifacts.set(false);
-					}}
+			{:else}
+				<div
+					class="pointer-events-auto z-20 flex items-center p-2.5 font-primar text-gray-900 dark:text-white"
 				>
-					<XMark className="size-3.5 text-gray-900 dark:text-white" />
-				</button>
-			</div>
+					<div class="flex-1 font-medium text-sm">{appTitle}</div>
+				</div>
+			{/if}
 		{/if}
 
 		{#if overlay}
