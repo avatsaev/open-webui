@@ -11,6 +11,7 @@
 	const i18n = getContext('i18n');
 
 	let loading = false;
+	let mounted = false;
 	let app = null;
 	export let id = '';
 	let history: Array<{ type: string; content: string }> = [];
@@ -40,11 +41,16 @@
 
 	onMount(async () => {
 		await loadApp();
+		mounted = true;
 	});
 
 	onDestroy(() => {
 		artifactContents.set([]);
 	});
+
+	$: if (mounted && id) {
+		loadApp();
+	}
 </script>
 
 <svelte:head>
