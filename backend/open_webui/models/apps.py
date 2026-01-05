@@ -186,6 +186,13 @@ class AppsTable:
         with get_db() as db:
             return [AppModel.model_validate(app) for app in db.query(App).all()]
 
+    def get_active_apps(self) -> list[AppModel]:
+        with get_db() as db:
+            return [
+                AppModel.model_validate(app)
+                for app in db.query(App).filter(App.is_active == True).all()
+            ]
+
     def get_apps_by_user_id(
         self, user_id: str, permission: str = "write"
     ) -> list[AppUserResponse]:

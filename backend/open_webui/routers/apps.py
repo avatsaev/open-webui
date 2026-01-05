@@ -111,6 +111,29 @@ async def get_app_by_source_chat_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 ###########################
+# GetActiveApps
+###########################
+
+
+@router.get("/active", response_model=list[AppResponse])
+async def get_active_apps(user=Depends(get_verified_user)):
+    """
+    Returns only enabled (active) apps that the user has access to.
+    """
+    if user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL:
+        return Apps.get_active_apps()
+    else:
+        apps = Apps.get_active_apps()
+        return [
+            app
+            for app in apps
+            if app.user_id == user.id
+            or has_access(user.id, "read", app.access_control)
+            or has_access(user.id, "write", app.access_control)
+        ]
+
+
+###########################
 # GetAppTags
 ###########################
 
@@ -259,11 +282,7 @@ class AppIdForm(BaseModel):
 # Note: We're not using the typical url path param here, but instead using a query parameter to allow '/' in the id
 @router.get("/app", response_model=Optional[AppResponse])
 async def get_app_by_id(id: str, user=Depends(get_verified_user)):
-    print("--------------------------------")
     app = Apps.get_app_by_id(id)
-    print(app)
-    print(user)
-    print("--------------------------------")
     if app:
         if (
             (user.role == "admin" and BYPASS_ADMIN_ACCESS_CONTROL)
