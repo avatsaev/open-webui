@@ -85,7 +85,37 @@ if "cuda_error" in locals():
     log.exception(cuda_error)
     del cuda_error
 
+<< << << < HEAD
+log_sources = [
+    "AUDIO",
+    "COMFYUI",
+    "CONFIG",
+    "DB",
+    "IMAGES",
+    "MAIN",
+    "MODELS",
+    "OLLAMA",
+    "OPENAI",
+    "RAG",
+    "WEBHOOK",
+    "SOCKET",
+    "OAUTH",
+    "APPS"
+]
+
+SRC_LOG_LEVELS = {}
+
+for source in log_sources:
+    log_env_var = source + "_LOG_LEVEL"
+    SRC_LOG_LEVELS[source] = os.environ.get(log_env_var, "").upper()
+    if SRC_LOG_LEVELS[source] not in logging.getLevelNamesMapping():
+        SRC_LOG_LEVELS[source] = GLOBAL_LOG_LEVEL
+    log.info(f"{log_env_var}: {SRC_LOG_LEVELS[source]}")
+
+log.setLevel(SRC_LOG_LEVELS["CONFIG"])
+== == == =
 SRC_LOG_LEVELS = {}  # Legacy variable, do not remove
+>>>>>> > main
 
 WEBUI_NAME = os.environ.get("WEBUI_NAME", "Open WebUI")
 if WEBUI_NAME != "Open WebUI":
