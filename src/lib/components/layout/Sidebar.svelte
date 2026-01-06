@@ -25,7 +25,8 @@
 		isApp,
 		models,
 		selectedFolder,
-		WEBUI_NAME
+		WEBUI_NAME,
+		sidebarWidth
 	} from '$lib/stores';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 
@@ -81,6 +82,12 @@
 	let allChatsLoaded = false;
 
 	let showCreateFolderModal = false;
+
+	let pinnedModels = [];
+
+	let showPinnedModels = false;
+	let showChannels = false;
+	let showFolders = false;
 
 	let folders = {};
 	let folderRegistry = {};
@@ -178,17 +185,24 @@
 		if (res) {
 			// newFolderId = res.id;
 			await initFolders();
+			showFolders = true;
 		}
 	};
 
 	const initChannels = async () => {
 		// default (none), group, dm type
-		await channels.set(
-			(await getChannels(localStorage.token)).sort(
-				(a, b) =>
-					['', null, 'group', 'dm'].indexOf(a.type) - ['', null, 'group', 'dm'].indexOf(b.type)
-			)
-		);
+		const res = await getChannels(localStorage.token).catch((error) => {
+			return null;
+		});
+
+		if (res) {
+			await channels.set(
+				res.sort(
+					(a, b) =>
+						['', null, 'group', 'dm'].indexOf(a.type) - ['', null, 'group', 'dm'].indexOf(b.type)
+				)
+			);
+		}
 	};
 
 	const initChatList = async () => {
@@ -366,8 +380,55 @@
 		selectedChatId = null;
 	};
 
+	const MIN_WIDTH = 220;
+	const MAX_WIDTH = 480;
+
+	let isResizing = false;
+
+	let startWidth = 0;
+	let startClientX = 0;
+
+	const resizeStartHandler = (e: MouseEvent) => {
+		if ($mobile) return;
+		isResizing = true;
+
+		startClientX = e.clientX;
+		startWidth = $sidebarWidth ?? 260;
+
+		document.body.style.userSelect = 'none';
+	};
+
+	const resizeEndHandler = () => {
+		if (!isResizing) return;
+		isResizing = false;
+
+		document.body.style.userSelect = '';
+		localStorage.setItem('sidebarWidth', String($sidebarWidth));
+	};
+
+	const resizeSidebarHandler = (endClientX) => {
+		const dx = endClientX - startClientX;
+		const newSidebarWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
+
+		sidebarWidth.set(newSidebarWidth);
+		document.documentElement.style.setProperty('--sidebar-width', `${newSidebarWidth}px`);
+	};
+
 	let unsubscribers = [];
+
 	onMount(async () => {
+		try {
+			const width = Number(localStorage.getItem('sidebarWidth'));
+			if (!Number.isNaN(width) && width >= MIN_WIDTH && width <= MAX_WIDTH) {
+				sidebarWidth.set(width);
+			}
+		} catch {}
+
+		document.documentElement.style.setProperty('--sidebar-width', `${$sidebarWidth}px`);
+		sidebarWidth.subscribe((w) => {
+			document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
+		});
+
 		await showSidebar.set(!$mobile ? localStorage.sidebar === 'true' : false);
 
 		unsubscribers = [
@@ -402,8 +463,20 @@
 				}
 
 				if (value) {
-					await initChannels();
+					// Only fetch channels if the feature is enabled and user has permission
+					if (
+						$config?.features?.enable_channels &&
+						($user?.role === 'admin' || ($user?.permissions?.features?.channels ?? true))
+					) {
+						await initChannels();
+					}
 					await initChatList();
+				}
+			}),
+			settings.subscribe((value) => {
+				if (pinnedModels != value?.pinnedModels ?? []) {
+					pinnedModels = value?.pinnedModels ?? [];
+					showPinnedModels = pinnedModels.length > 0;
 				}
 			})
 		];
@@ -520,7 +593,7 @@
 			$socket.emit('join-channels', { auth: { token: $user?.token } });
 			await initChannels();
 			showCreateChannel = false;
-
+			showChannels = true;
 			goto(`/channels/${res.id}`);
 		}
 	}}
@@ -562,6 +635,16 @@
 	on:click={() => {
 		goto('/');
 		newChatHandler();
+	}}
+/>
+
+<svelte:window
+	on:mousemove={(e) => {
+		if (!isResizing) return;
+		resizeSidebarHandler(e.clientX);
+	}}
+	on:mouseup={() => {
+		resizeEndHandler();
 	}}
 />
 
@@ -805,7 +888,7 @@
 		data-state={$showSidebar}
 	>
 		<div
-			class=" my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[260px] overflow-x-hidden scrollbar-hidden z-50 {$showSidebar
+			class=" my-auto flex flex-col justify-between h-screen max-h-[100dvh] w-[var(--sidebar-width)] overflow-x-hidden scrollbar-hidden z-50 {$showSidebar
 				? ''
 				: 'invisible'}"
 		>
@@ -1004,6 +1087,7 @@
 				{#if ($models ?? []).length > 0 && (($settings?.pinnedModels ?? []).length > 0 || $config?.default_pinned_models)}
 					<Folder
 						id="sidebar-models"
+						bind:open={showPinnedModels}
 						className="px-2 mt-0.5"
 						name={$i18n.t('Models')}
 						chevron={false}
@@ -1028,6 +1112,7 @@
 				{#if $config?.features?.enable_channels && ($user?.role === 'admin' || ($user?.permissions?.features?.channels ?? true))}
 					<Folder
 						id="sidebar-channels"
+						bind:open={showChannels}
 						className="px-2 mt-0.5"
 						name={$i18n.t('Channels')}
 						chevron={false}
@@ -1062,6 +1147,7 @@
 				{#if $config?.features?.enable_folders && ($user?.role === 'admin' || ($user?.permissions?.features?.folders ?? true))}
 					<Folder
 						id="sidebar-folders"
+						bind:open={showFolders}
 						className="px-2 mt-0.5"
 						name={$i18n.t('Folders')}
 						chevron={false}
@@ -1395,4 +1481,17 @@
 			</div>
 		</div>
 	</div>
+
+	{#if !$mobile}
+		<div
+			class="relative flex items-center justify-center group border-l border-gray-50 dark:border-gray-850/30 hover:border-gray-200 dark:hover:border-gray-800 transition z-20"
+			id="sidebar-resizer"
+			on:mousedown={resizeStartHandler}
+			role="separator"
+		>
+			<div
+				class=" absolute -left-1.5 -right-1.5 -top-0 -bottom-0 z-20 cursor-col-resize bg-transparent"
+			/>
+		</div>
+	{/if}
 {/if}
