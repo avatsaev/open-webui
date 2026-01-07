@@ -3,10 +3,12 @@
 	import { writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { showSidebar } from '$lib/stores';
+	import { showSidebar, mobile } from '$lib/stores';
 	import { getAppById } from '$lib/apis/apps';
 	import Artifacts from '$lib/components/chat/Artifacts.svelte';
 	import { artifactCode, artifactContents } from '$lib/stores';
+	import Sidebar from '$lib/components/icons/Sidebar.svelte';
+	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -62,6 +64,30 @@
 		: ' '} w-full max-w-full flex flex-col"
 	id="chat-container"
 >
+	{#if $mobile}
+		<nav class="px-2 pt-1.5 backdrop-blur-xl w-full">
+			<div class="flex items-center">
+				<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
+					<Tooltip
+						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+						interactive={true}
+					>
+						<button
+							id="sidebar-toggle-button"
+							class="cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+							on:click={() => {
+								showSidebar.set(!$showSidebar);
+							}}
+						>
+							<div class="self-center p-1.5">
+								<Sidebar />
+							</div>
+						</button>
+					</Tooltip>
+				</div>
+			</div>
+		</nav>
+	{/if}
 	<div class="flex-1 h-full relative overflow-hidden">
 		{#if loading}
 			<p>Loading App...</p>

@@ -4,12 +4,14 @@
 
 	const i18n = getContext('i18n');
 
-	import { WEBUI_NAME, user, showSidebar } from '$lib/stores';
+	import { WEBUI_NAME, user, showSidebar, mobile } from '$lib/stores';
 	import { getActiveApps } from '$lib/apis/apps';
 
 	import Search from '$lib/components/icons/Search.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
+	import Sidebar from '$lib/components/icons/Sidebar.svelte';
+	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import AppGalleryItem from './AppGalleryItem.svelte';
 
 	let loaded = false;
@@ -66,6 +68,26 @@
 		<div class="flex flex-col gap-1 mb-4 max-w-6xl mx-auto w-full">
 			<div class="flex justify-between items-center">
 				<div class="flex items-center text-2xl font-semibold gap-2">
+					{#if $mobile}
+						<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
+							<Tooltip
+								content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+								interactive={true}
+							>
+								<button
+									id="sidebar-toggle-button"
+									class=" cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+									on:click={() => {
+										showSidebar.set(!$showSidebar);
+									}}
+								>
+									<div class=" self-center p-1.5">
+										<Sidebar />
+									</div>
+								</button>
+							</Tooltip>
+						</div>
+					{/if}
 					<div>
 						{$i18n.t('App Gallery')}
 					</div>
