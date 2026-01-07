@@ -4,7 +4,7 @@
 
 	const i18n = getContext('i18n');
 
-	import { WEBUI_NAME, user } from '$lib/stores';
+	import { WEBUI_NAME, user, showSidebar } from '$lib/stores';
 	import { getActiveApps } from '$lib/apis/apps';
 
 	import Search from '$lib/components/icons/Search.svelte';
@@ -58,8 +58,12 @@
 </svelte:head>
 
 {#if loaded}
-	<div class="flex flex-col h-full max-w-6xl mx-auto w-full px-4 py-4">
-		<div class="flex flex-col gap-1 mb-4">
+	<div
+		class="flex flex-col h-full w-full px-4 py-4 transition-width duration-200 ease-in-out {$showSidebar
+			? 'md:max-w-[calc(100%-260px)]'
+			: ''} max-w-full"
+	>
+		<div class="flex flex-col gap-1 mb-4 max-w-6xl mx-auto w-full">
 			<div class="flex justify-between items-center">
 				<div class="flex items-center text-2xl font-semibold gap-2">
 					<div>
@@ -77,7 +81,7 @@
 		</div>
 
 		<div
-			class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 flex-1 overflow-hidden flex flex-col"
+			class="py-2 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100/30 dark:border-gray-850/30 flex-1 overflow-hidden flex flex-col max-w-6xl mx-auto w-full"
 		>
 			<div class="px-3.5 flex items-center w-full space-x-2 py-0.5 pb-2">
 				<div class="flex flex-1 items-center">

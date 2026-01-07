@@ -1402,13 +1402,8 @@ USER_PERMISSIONS_WORKSPACE_APPS_ALLOW_PUBLIC_SHARING = (
 )
 
 USER_PERMISSIONS_NOTES_ALLOW_SHARING = (
-<<<<<<< HEAD
-    os.environ.get(
-        "USER_PERMISSIONS_NOTES_ALLOW_PUBLIC_SHARING", "False").lower()
-    == "true"
-=======
-    os.environ.get("USER_PERMISSIONS_NOTES_ALLOW_SHARING", "False").lower() == "true"
->>>>>>> main
+    os.environ.get("USER_PERMISSIONS_NOTES_ALLOW_SHARING",
+                   "False").lower() == "true"
 )
 
 USER_PERMISSIONS_NOTES_ALLOW_PUBLIC_SHARING = (
@@ -3719,9 +3714,11 @@ IMAGES_EDIT_COMFYUI_WORKFLOW = PersistentConfig(
     os.getenv("IMAGES_EDIT_COMFYUI_WORKFLOW", ""),
 )
 
-images_edit_comfyui_workflow_nodes = os.getenv("IMAGES_EDIT_COMFYUI_WORKFLOW_NODES", "")
+images_edit_comfyui_workflow_nodes = os.getenv(
+    "IMAGES_EDIT_COMFYUI_WORKFLOW_NODES", "")
 try:
-    images_edit_comfyui_workflow_nodes = json.loads(images_edit_comfyui_workflow_nodes)
+    images_edit_comfyui_workflow_nodes = json.loads(
+        images_edit_comfyui_workflow_nodes)
 except json.JSONDecodeError:
     images_edit_comfyui_workflow_nodes = []
 
