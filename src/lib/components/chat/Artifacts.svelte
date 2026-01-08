@@ -283,10 +283,22 @@
 					</button>
 				</div>
 			{:else}
-				<div
-					class="pointer-events-auto z-20 flex items-center p-2.5 font-primar text-gray-900 dark:text-white"
-				>
-					<div class="flex-1 font-medium text-sm">{appTitle}</div>
+				<div class="flex items-center justify-between pr-1">
+					<div
+						class="pointer-events-auto z-20 flex items-center p-2.5 font-primar text-gray-900 dark:text-white"
+					>
+						<div class="flex-1 font-medium text-sm">{appTitle}</div>
+					</div>
+					{#if contents[selectedContentIdx].type === 'iframe'}
+						<Tooltip content={$i18n.t('Open in full screen')}>
+							<button
+								class=" mr-4 bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+								on:click={showFullScreen}
+							>
+								<ArrowsPointingOut className="size-3.5" />
+							</button>
+						</Tooltip>
+					{/if}
 				</div>
 			{/if}
 		{/if}
