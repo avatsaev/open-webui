@@ -92,6 +92,8 @@ export const showCallOverlay = writable(false);
 
 export const artifactCode = writable(null);
 export const artifactContents = writable(null);
+export const createAppFromArtifactCode = writable<{ sourceCode: string; sourceChatId: string } | null>(null);
+export const updateAppFromArtifactCode = writable<{ sourceCode: string; } | null>(null);
 
 export const embed = writable(null);
 
@@ -154,6 +156,7 @@ type OllamaModelDetails = {
 
 type Settings = {
 	pinnedModels?: never[];
+	pinnedApps?: never[];
 	toolServers?: never[];
 	detectArtifacts?: boolean;
 	showUpdateToast?: boolean;

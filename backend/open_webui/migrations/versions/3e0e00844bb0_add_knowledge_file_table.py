@@ -16,7 +16,6 @@ import open_webui.internal.db
 import time
 import json
 import uuid
-
 # revision identifiers, used by Alembic.
 revision: str = "3e0e00844bb0"
 down_revision: Union[str, None] = "90ef40d4714e"
@@ -152,7 +151,8 @@ def downgrade() -> None:
 
     for (knowledge_id,) in results:
         file_ids = connection.execute(
-            sa.select(kf_table.c.file_id).where(kf_table.c.knowledge_id == knowledge_id)
+            sa.select(kf_table.c.file_id).where(
+                kf_table.c.knowledge_id == knowledge_id)
         ).fetchall()
 
         file_ids_list = [fid for (fid,) in file_ids]
