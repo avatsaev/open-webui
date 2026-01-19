@@ -23,6 +23,7 @@
 
 	export let user;
 	export let app;
+	export let groupIds: string[] = [];
 
 	export let editHandler: Function;
 	export let shareHandler: Function;
@@ -101,17 +102,19 @@
 				</div>
 			</DropdownMenu.Item>
 
-			<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
+			{#if $currentUser?.role === 'admin' || app?.user_id === $currentUser?.id || (app?.access_control?.write?.group_ids ?? []).some( (wg) => groupIds.includes(wg) )}
+				<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
 
-			<DropdownMenu.Item
-				class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
-				on:click={() => {
-					editHandler();
-				}}
-			>
-				<Pencil />
-				<div class="flex items-center">{$i18n.t('Edit')}</div>
-			</DropdownMenu.Item>
+				<DropdownMenu.Item
+					class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
+					on:click={() => {
+						editHandler();
+					}}
+				>
+					<Pencil />
+					<div class="flex items-center">{$i18n.t('Edit')}</div>
+				</DropdownMenu.Item>
+			{/if}
 
 			<DropdownMenu.Item
 				class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
@@ -124,7 +127,7 @@
 				<div class="flex items-center">{$i18n.t('Clone')}</div>
 			</DropdownMenu.Item>
 
-			{#if app?.source_chat_id}
+			{#if app?.source_chat_id && app?.user_id === $currentUser?.id}
 				<DropdownMenu.Item
 					class="flex gap-2 items-center px-3 py-1.5 text-sm  cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
 					on:click={() => {

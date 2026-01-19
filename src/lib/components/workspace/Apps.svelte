@@ -436,6 +436,7 @@
 																<AppMenu
 																	user={$user}
 																	{app}
+																	{groupIds}
 																	editHandler={() => {
 																		goto(`/workspace/apps/edit?id=${encodeURIComponent(app.id)}`);
 																	}}
