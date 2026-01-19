@@ -413,11 +413,7 @@ async def delete_app_by_id(form_data: AppIdForm, user=Depends(get_verified_user)
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    if (
-        user.role != "admin"
-        and app.user_id != user.id
-        and not has_access(user.id, "write", app.access_control)
-    ):
+    if user.role != "admin" and app.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ERROR_MESSAGES.UNAUTHORIZED,
