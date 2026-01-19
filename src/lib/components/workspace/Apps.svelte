@@ -436,17 +436,10 @@
 																<AppMenu
 																	user={$user}
 																	{app}
-																	editHandler={$user?.role === 'admin' ||
-																	app.user_id === $user?.id ||
-																	(app.access_control?.write?.group_ids ?? []).some((wg) =>
-																		groupIds.includes(wg)
-																	)
-																		? () => {
-																				goto(
-																					`/workspace/apps/edit?id=${encodeURIComponent(app.id)}`
-																				);
-																			}
-																		: undefined}
+																	{groupIds}
+																	editHandler={() => {
+																		goto(`/workspace/apps/edit?id=${encodeURIComponent(app.id)}`);
+																	}}
 																	shareHandler={() => {
 																		shareAppHandler(app);
 																	}}
