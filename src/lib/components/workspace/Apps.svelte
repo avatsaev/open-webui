@@ -147,7 +147,7 @@
 
 	const copyLinkHandler = async (app) => {
 		const baseUrl = window.location.origin;
-		const res = await copyToClipboard(`${baseUrl}/?app=${encodeURIComponent(app.id)}`);
+		const res = await copyToClipboard(`${baseUrl}/apps/${encodeURIComponent(app.id)}`);
 
 		if (res) {
 			toast.success($i18n.t('Copied link to clipboard'));
